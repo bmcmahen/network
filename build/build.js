@@ -2012,7 +2012,7 @@ var MindMap = module.exports = function(container, nodes, links){
   }
 
   this.translation = { x : 0, y : 0 };
-  this.scale = 0.5;
+  this.scale = 1;
   this.animated = false;
   this.createView();
 };
@@ -2075,6 +2075,9 @@ MindMap.prototype.unbind = function(){
 
 
 MindMap.prototype.onmouseleave = function(){
+  
+  this.draggingCanvas = false;
+
   if (this.activeNode){
     this.activeNode.isActive = false;
     this.activeNode.xFixed = false;
@@ -2097,19 +2100,29 @@ MindMap.prototype.onmouseleave = function(){
  */
 
 MindMap.prototype.onmousedown = function(x, y){
+  this.startMouseX = x;
+  this.startMouseY = y;
+  this.startTranslationX = this.translation.x;
+  this.startTranslationY = this.translation.y;
+
   x = this.xToCanvas(x);
   y = this.yToCanvas(y);
 
   var clickedNode = this.nodes.getOverlappingNode(x, y);
-
+  
+  if (!this.animated) this.animate();
+  
   if (clickedNode){
     this.activeNode = clickedNode;
     this.clickFlag = true;
     clickedNode.isActive = true;
     this.emit('nodeActive', this.activeNode);
-    if (!this.animated) this.animate();
     this.view.bindDragging();
     this.dragging = true;
+  } else {
+    this.emit('draggingCanvas');
+    this.view.bindDragging();
+    this.draggingCanvas = true;
   }
 };
 
@@ -2121,20 +2134,27 @@ MindMap.prototype.onmousedown = function(x, y){
 
 MindMap.prototype.onmousemove = function(x, y){
   if (x && y){
-    x = this.xToCanvas(x);
-    y = this.yToCanvas(y);
 
+    // dragging node
     if (this.activeNode && this.dragging){
       this.clickFlag = false;
       var node = this.activeNode;
       node.xFixed = true;
       node.yFixed = true;
-      node.x = x;
-      node.y = y;
+      node.x = this.xToCanvas(x);
+      node.y = this.yToCanvas(y);
 
+    // dragging canvas
+    } else if (this.draggingCanvas) {
+
+      var diffX = this.startTranslationX + (x - this.startMouseX);
+      var diffY = this.startTranslationY + (y - this.startMouseY);
+      this.setTranslation(diffX, diffY);
+
+    // watch for hovers
     } else {
 
-      var hoverNode = this.nodes.getOverlappingNode(x, y);
+      var hoverNode = this.nodes.getOverlappingNode(this.xToCanvas(x), this.yToCanvas(y));
 
       // Start hover-in animation
       if (hoverNode && !this.hoverNode) {
@@ -2168,8 +2188,8 @@ MindMap.prototype.onzoom = function(x, y, delta, pinch){
 
   var oldScale = this.scale;
   var newScale = oldScale * (1 + zoom);
-  if (newScale < 0.01) newScale = 0.01;
-  if (newScale > 10) newScale = 10;
+  if (newScale < 0.3) newScale = 0.3;
+  if (newScale > 3) newScale = 3;
 
   var translation = this.translation
     , scaleFrac = newScale / oldScale
@@ -2183,7 +2203,6 @@ MindMap.prototype.onzoom = function(x, y, delta, pinch){
 // xxx redundancy with onZoom event handler
 MindMap.prototype.onpinch = function(x, y, scale){
   this.animate();
-
 
   var scaleFrac = scale / this.scale;
   this.scale = scale;
@@ -2200,6 +2219,9 @@ MindMap.prototype.onpinch = function(x, y, scale){
 MindMap.prototype.onmouseup = function(){
   if (this.activeNode) {
     this.activeNode.isActive = false;
+  }
+  if (this.draggingCanvas) {
+    this.draggingCanvas = false;
   }
   if (this.clickFlag){
     if (this.selectedNode != this.activeNode){
@@ -2485,14 +2507,14 @@ NodeCollection.prototype.setForces = function(){
 // https://github.com/almende/vis/blob/master/src/graph/graphMixins/physics/PhysicsMixin.js
 
 NodeCollection.prototype.setGravitationalForce = function(){
-  var gravity = 0.005;
+  var gravity = 0.015;
   var scale = this.context.scale;
   var gx = constants.CONTAINER_WIDTH / 2;
   var gy = constants.CONTAINER_HEIGHT / 2;
 
    this.forEach(function(node, i){
-    var dx = gx - (node.x - (node.x * scale));
-    var dy = gy - node.y + (node.y * scale);
+    var dx = gx - (node.x);
+    var dy = gy - (node.y);
     var angle = Math.atan2(dy, dx);
     var fx = Math.cos(angle) * gravity;
     var fy = Math.sin(angle) * gravity;
@@ -2737,8 +2759,15 @@ NodeModel.prototype.setRandomPosition = function(i, total, scale){
   var cy = (constants.CONTAINER_HEIGHT / 2);
   var angle = 2 * Math.PI * (i / total);
 
-  if (! this.xFixed) this.x = cx + radius * Math.cos(angle);
-  if (! this.yFixed) this.y = cy + radius * Math.sin(angle);
+  if (!this.xFixed) {
+    var x = cx + radius * Math.cos(angle);
+    this.x = x + (x * scale);
+  }
+
+  if (!this.yFixed){
+    var y = cy + radius * Math.sin(angle);
+    this.y = y + (y * scale);
+  } 
 };
 
 NodeModel.prototype.addLink = function(link){
@@ -3186,7 +3215,7 @@ CanvasView.prototype.redraw = function(){
 
   ctx.clearRect(0, 0, w, h);
   ctx.save();
-  ctx.translate(m.translation.x, m.translation.y);
+  ctx.translate(m.translation.x * this.devicePixelRatio, m.translation.y * this.devicePixelRatio);
   ctx.scale(m.scale * this.devicePixelRatio, m.scale * this.devicePixelRatio);
 
   if (this.loadingState){
