@@ -2,7 +2,7 @@
   "name": "network",
   "repo": "bmcmahen/network",
   "description": "create an interactive network / mindmap",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "keywords": [
     "network",
     "mindmap",
@@ -22,7 +22,8 @@
     "component/pinch": "*",
     "stagas/mouseleave": "*",
     "yields/is-touch": "*",
-    "component/emitter": "1.1.0"
+    "component/emitter": "1.1.0",
+    "component/to-function": "2.0.5"
   },
   "license": "MIT",
   "main": "index.js",
