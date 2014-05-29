@@ -14,8 +14,10 @@ Instantiates a new mindmap inside the given DOM element.
 
 Add nodes to the mindmap. `fn` allows the user to supply the unique `id` that the mindmap uses internally to manage nodes. To add or remove nodes, reuse `.data()` with your altered data-set.
 
-	var docs = [{_id: 1, name: 'Ben'}, {_id: 2, name: 'Joe'}];
-	network.nodes.data(docs, '_id');
+```javascript
+var docs = [{_id: 1, name: 'Ben'}, {_id: 2, name: 'Joe'}];
+network.nodes.data(docs, '_id');
+```
 
 Currently the mindmap requires the text attribute to be called `name`, but this should change in the future.
 
@@ -23,8 +25,10 @@ Currently the mindmap requires the text attribute to be called `name`, but this 
 
 Add links to the mindmap. Links must have a from and to field, each containing the `id` of the node to which it's connected. The example below provides one link between `Ben` and `Joe`.
 
-	var links = [{ _id: 1, from: { _id: 1}, to: { _id:  2} , strength: 10 }];
-	network.links.data(links, '_id');
+```javascript
+var links = [{ _id: 1, from: { _id: 1}, to: { _id:  2} , strength: 10 }];
+network.links.data(links, '_id');
+```
 
 ### network.width(pixels);
 
@@ -50,7 +54,9 @@ Deselect the node.
 
 ### network.imageAttribute(string)
 
-  network.imageAttribute('image.url');
+```javascript
+network.imageAttribute('image.url');
+```
 
 This displays a loading icon in the middle of the canvas. Useful during the initial loading process. Pass `true` to start the loading animation, and pass `false` to remove the animation.
 
